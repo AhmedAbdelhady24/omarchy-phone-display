@@ -17,4 +17,6 @@ jobs:
       - name: Lifecycle regressions
         run: python3 -m unittest discover -s tests -v
       - name: Display layout regressions
-        run: node tests/test_layout.cjs
+        run: |
+          node tests/test_layout.cjs
+          node tests/test_colors.cjs

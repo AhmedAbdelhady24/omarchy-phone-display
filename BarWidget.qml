@@ -49,6 +49,7 @@ Ui.BarWidget {
         bar: root.bar
         text: PhoneState.busy ? "󰦖" : PhoneState.active ? "󰄜" : PhoneState.adbConnected ? "󰄛" : "󰄞"
         active: PhoneState.active
+        activeColor: PhonePalette.accent
         opacity: PhoneState.adbConnected || PhoneState.active ? 1 : 0.45
         // Only static translated strings enter the shell-owned tooltip.
         tooltipText: PhoneState.busy ? strings.t("working") : PhoneState.active ? strings.t("activeTooltip")

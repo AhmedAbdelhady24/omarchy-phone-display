@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import qs.Ui as Ui
 import qs.Commons as Commons
@@ -24,6 +25,7 @@ Ui.Panel {
         anchorItem: root.anchorItem
         owner: root.hostWidget
         open: root.opened
+        borderSpec: Commons.Border.flat(PhonePalette.border, 1)
         contentWidth: fittedContentWidth(Commons.Style.space(460))
         contentHeight: fittedContentHeight(loadedContentHeight, Commons.Style.space(780))
         focusTarget: loadedContent
@@ -31,26 +33,55 @@ Ui.Panel {
             implicitHeight: body.implicitHeight
             anchors.fill: parent
             Keys.onEscapePressed: root.close()
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: -panel.padding
+                color: PhonePalette.background
+                radius: Commons.Style.cornerRadius
+                z: -1
+            }
             Controls.ScrollView {
+                id: scroll
                 anchors.fill: parent
                 clip: true
                 contentWidth: availableWidth
                 Controls.ScrollBar.horizontal.policy: Controls.ScrollBar.AlwaysOff
                 Column {
                     id: body
-                    width: parent.width
+                    width: scroll.availableWidth
                     spacing: Commons.Style.space(12)
-                    Text {
-                        textFormat: Text.PlainText
-                        text: strings.t("title")
-                        color: Commons.Color.foreground
-                        font.family: Commons.Style.font.family
-                        font.pixelSize: Commons.Style.font.title
+                    RowLayout {
+                        width: parent.width
+                        spacing: Commons.Style.space(10)
+                        Text {
+                            Layout.fillWidth: true
+                            textFormat: Text.PlainText
+                            text: strings.t("title")
+                            color: PhonePalette.foreground
+                            font.family: Commons.Style.font.family
+                            font.pixelSize: Commons.Style.font.body
+                            font.bold: true
+                        }
+                        Rectangle {
+                            implicitWidth: badge.implicitWidth+Commons.Style.space(18)
+                            implicitHeight: Commons.Style.space(26)
+                            radius: height/2
+                            color: PhonePalette.elevated
+                            border.color: root.backend.adbConnected?PhonePalette.border:PhonePalette.line
+                            Text {
+                                id: badge
+                                anchors.centerIn: parent
+                                textFormat: Text.PlainText
+                                text: root.backend.adbConnected?strings.t("connectedBadge"):strings.t("disconnectedBadge")
+                                color: root.backend.adbConnected?PhonePalette.accent:PhonePalette.muted
+                                font.pixelSize: Commons.Style.font.bodySmall
+                            }
+                        }
                     }
                     Row {
                         spacing: Commons.Style.space(8)
-                        Ui.Button { text: strings.t("displayTab"); selected: !root.showSetup; focusable: true; onClicked: root.showSetup=false }
-                        Ui.Button { text: strings.t("setupTab"); selected: root.showSetup; focusable: true; onClicked: root.showSetup=true }
+                        ActionButton { text: strings.t("displayTab"); emphasized: !root.showSetup; focusable: true; onClicked: root.showSetup=false }
+                        ActionButton { text: strings.t("setupTab"); emphasized: root.showSetup; focusable: true; onClicked: root.showSetup=true }
                     }
                     Text {
                         width: parent.width
@@ -59,10 +90,19 @@ Ui.Panel {
                         text: root.backend.busy ? strings.t("working") : root.backend.active ? strings.t("streaming").arg(root.backend.resolution)
                             : root.backend.setup.usb && !root.backend.setup.avnc ? strings.t("avncMissing")
                             : root.backend.adbConnected ? strings.t("ready") : strings.t("disconnected")
-                        color: Commons.Color.foreground
+                        color: PhonePalette.foreground
                         font.pixelSize: Commons.Style.font.body
                     }
-                    SetupGuide { visible: root.showSetup; backend: root.backend; hostWidget: root.hostWidget }
+                    Text {
+                        width: parent.width
+                        visible: root.showSetup
+                        textFormat: Text.PlainText
+                        text: strings.t("setupSubtitle")
+                        wrapMode: Text.WordWrap
+                        color: PhonePalette.muted
+                        font.pixelSize: Commons.Style.font.bodySmall
+                    }
+                    SetupGuide { width: body.width; visible: root.showSetup; backend: root.backend; hostWidget: root.hostWidget }
                     Column {
                         visible: !root.showSetup
                         width: parent.width
@@ -72,7 +112,7 @@ Ui.Panel {
                             textFormat: Text.PlainText
                             text: strings.t("dragHint")
                             wrapMode: Text.WordWrap
-                            color: Commons.Color.foreground
+                            color: PhonePalette.foreground
                             font.pixelSize: Commons.Style.font.bodySmall
                         }
                         DisplayLayout {
@@ -89,7 +129,7 @@ Ui.Panel {
                         Text {
                             textFormat: Text.PlainText
                             text: strings.t("currentPosition").arg(layoutEditor.shownPlacement)
-                            color: Commons.Color.foreground
+                            color: PhonePalette.foreground
                             font.pixelSize: Commons.Style.font.bodySmall
                         }
                         Repeater {
@@ -106,10 +146,11 @@ Ui.Panel {
                                 Text {
                                     textFormat: Text.PlainText
                                     text: strings.t(modelData.label)
-                                    color: Commons.Color.foreground
+                                    color: PhonePalette.foreground
                                     font.pixelSize: Commons.Style.font.bodySmall
                                 }
-                                Controls.ComboBox {
+                                Choice {
+                                    id: choice
                                     width: parent.width
                                     enabled: !root.backend.busy && (modelData.key === "orientation" || !root.backend.active)
                                     model: {
@@ -123,14 +164,11 @@ Ui.Panel {
                                         root.hostWidget.saveChoice(modelData.key,model[currentIndex])
                                         if (modelData.key === "orientation" && root.backend.active) root.hostWidget.runAction("configure")
                                     }
-                                    displayText: modelData.key === "orientation" ? strings.t(currentText)
-                                        : currentText === "native" ? strings.t("nativeResolution").arg(root.backend.setup.nativeSize || "…")
-                                        : modelData.key === "refreshRate" ? currentText+" Hz" : currentText
-                                    palette.text: Commons.Color.foreground
-                                    palette.buttonText: Commons.Color.foreground
-                                    palette.button: Commons.Color.background
-                                    palette.base: Commons.Color.background
-                                    palette.highlight: Commons.Color.accent
+                                    labelFor: function(value) {
+                                        if (modelData.key === "orientation") return strings.t(String(value))
+                                        if (value === "native") return strings.t("nativeResolution").arg(root.backend.setup.nativeSize || "…")
+                                        return modelData.key === "refreshRate"?value+" Hz":String(value)
+                                    }
                                 }
                             }
                         }
@@ -139,7 +177,7 @@ Ui.Panel {
                             textFormat: Text.PlainText
                             text: strings.t("rotationHint")
                             wrapMode: Text.WordWrap
-                            color: Commons.Color.foreground
+                            color: PhonePalette.foreground
                             font.pixelSize: Commons.Style.font.bodySmall
                         }
                     }
@@ -149,18 +187,19 @@ Ui.Panel {
                         textFormat: Text.PlainText
                         wrapMode: Text.WrapAnywhere
                         text: root.backend.error
-                        color: Commons.Color.foreground
+                        color: PhonePalette.danger
                         font.pixelSize: Commons.Style.font.bodySmall
                     }
                     Row {
                         spacing: Commons.Style.space(10)
-                        Ui.Button {
+                        ActionButton {
                             text: root.backend.active ? strings.t("stop") : strings.t("start")
+                            primary: !root.backend.active
                             focusable: true
                             enabled: !root.backend.busy && (root.backend.active || root.backend.setup.usb && root.backend.setup.avnc && !root.backend.setup.missing.length)
                             onClicked: root.hostWidget.runAction("toggle")
                         }
-                        Ui.Button { text: strings.t("cleanup"); focusable: true; enabled: !root.backend.busy; onClicked: root.hostWidget.runAction("stop") }
+                        ActionButton { text: strings.t("cleanup"); focusable: true; enabled: !root.backend.busy; onClicked: root.hostWidget.runAction("stop") }
                     }
                 }
             }

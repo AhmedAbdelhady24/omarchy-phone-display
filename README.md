@@ -3,6 +3,8 @@
 Use an Android phone running **AVNC** as an extended Hyprland monitor over USB.
 A Quickshell bar widget controls the session, with a built-in setup walkthrough,
 phone rotation, and a draggable display layout.
+The compact status cards and controls follow Omarchy’s active theme colors,
+including live accent changes; expand a setup row only when you need instructions.
 
 - Left-click the bar icon to start or stop; right-click for **Setup** and **Display**.
 - **Setup** checks Linux dependencies, USB authorization, and whether AVNC is installed.
@@ -20,16 +22,20 @@ including `qs.Ui`, `qs.Commons`, and `Commons.Translations`.
 
 ![Setup and controls walkthrough](docs/media/setup-controls.gif)
 
-An eight-second recording of the real plugin: the setup tutorial, AVNC
-installation check, charging-awake option, display map, and orientation choices.
-The capture is cropped to the plugin; surrounding desktop content is excluded.
+A 10-second walkthrough of the plugin interface: compact setup checks,
+expandable instructions, display layout, orientation choices, and theme accents.
+The captures render the actual QML components with the connected phone’s state
+in an isolated preview. Mint and blue demonstrate live accent changes there;
+the installed desktop theme is unchanged. Surrounding desktop content is excluded.
 
 <p>
   <img src="docs/media/setup.png" width="360" alt="Setup tutorial with dependency, AVNC, USB authorization, rotation, and charging-awake checks">
   <img src="docs/media/display-controls.png" width="360" alt="Phone monitor layout map and resolution, orientation, refresh rate, and scale controls">
 </p>
 
+[Expanded instructions](docs/media/setup-instructions.png) ·
 [Orientation choices](docs/media/orientation-options.png) ·
+[Mint accent](docs/media/theme-mint.png) · [Blue accent](docs/media/theme-blue.png) ·
 [Prompt for a LinkedIn/X launch graphic](docs/social-image-prompt.md)
 
 ## Install
@@ -212,6 +218,7 @@ bash -n phone-display.sh install.sh
 omarchy plugin validate .
 python3 -m unittest discover -s tests -v
 node tests/test_layout.cjs
+node tests/test_colors.cjs
 ```
 
 Python tests fake ADB, Hyprland, and the server using temporary Unix sockets;

@@ -36,3 +36,14 @@ preference enabled after the explicit ADB command.
 Still unmeasured: sustained frame rate and end-to-end latency. Display mode
 refresh rate and a connected VNC client do not prove a playback frame rate.
 Keep the upstream output-removal/fallback caveat in the README visible.
+
+The 1.2 UI uses compact expandable setup cards and theme-derived surfaces.
+An isolated Quickshell check confirmed two live accent changes without a reload,
+automatic expansion when AVNC is missing, and collapsed steps once checks pass.
+The contrast regression checks black/white selected text across 4,096 accents.
+
+Updated documentation captures render the actual popup content component in a
+temporary, isolated headless preview. Setup state comes from the connected
+phone, and the layout excludes the capture output. The GIF illustrates compact
+checks, expanded USB guidance, controls, and isolated mint/blue accent changes.
+The capture helper and its temporary IPC hook are not part of the plugin.

@@ -23,9 +23,9 @@ Rectangle {
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
     height: Commons.Style.space(200)
-    color: Commons.Color.background
-    radius: Commons.Style.cornerRadius
-    border.color: Commons.Color.foreground
+    color: PhonePalette.background
+    radius: Commons.Style.space(10)
+    border.color: PhonePalette.line
     border.width: 1
     clip: true
     Commons.Translations { id: strings; directory: Qt.resolvedUrl("i18n") }
@@ -37,9 +37,9 @@ Rectangle {
             y: root.originY+(modelData.y-root.view.y)*root.factor
             width: modelData.width*root.factor
             height: modelData.height*root.factor
-            color: Qt.rgba(0.5,0.5,0.5,0.15)
-            border.color: Commons.Color.foreground
-            radius: 3
+            color: PhonePalette.elevated
+            border.color: PhonePalette.line
+            radius: Commons.Style.space(6)
             Text {
                 anchors.centerIn: parent
                 width: parent.width-8
@@ -47,7 +47,7 @@ Rectangle {
                 text: modelData.name
                 elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter
-                color: Commons.Color.foreground
+                color: PhonePalette.foreground
                 font.pixelSize: Commons.Style.font.bodySmall
             }
         }
@@ -59,9 +59,9 @@ Rectangle {
         y: root.originY+(root.view.phone.y-root.view.y)*root.factor
         width: root.phone.width*root.factor
         height: root.phone.height*root.factor
-        color: Commons.Color.accent
-        radius: 3
-        border.color: Commons.Color.foreground
+        color: PhonePalette.accent
+        radius: Commons.Style.space(6)
+        border.color: PhonePalette.line
         focus: true
         activeFocusOnTab: true
         Accessible.name: strings.t("phoneDrag")
@@ -85,7 +85,7 @@ Rectangle {
             text: strings.t("phone")
             elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter
-            color: Commons.Color.background
+            color: PhonePalette.ink
             font.pixelSize: Commons.Style.font.bodySmall
         }
         MouseArea {
