@@ -16,6 +16,22 @@ Tested on Omarchy 4.5.0, Hyprland 0.56.2, Quickshell 0.3.2.r7, WayVNC 0.10.2,
 and a Xiaomi Mi 9T with AVNC 3.3.1. Requires Omarchy's Quickshell plugin API,
 including `qs.Ui`, `qs.Commons`, and `Commons.Translations`.
 
+## Interface preview
+
+![Setup and controls walkthrough](docs/media/setup-controls.gif)
+
+An eight-second recording of the real plugin: the setup tutorial, AVNC
+installation check, charging-awake option, display map, and orientation choices.
+The capture is cropped to the plugin; surrounding desktop content is excluded.
+
+<p>
+  <img src="docs/media/setup.png" width="360" alt="Setup tutorial with dependency, AVNC, USB authorization, rotation, and charging-awake checks">
+  <img src="docs/media/display-controls.png" width="360" alt="Phone monitor layout map and resolution, orientation, refresh rate, and scale controls">
+</p>
+
+[Orientation choices](docs/media/orientation-options.png) ·
+[Prompt for a LinkedIn/X launch graphic](docs/social-image-prompt.md)
+
 ## Install
 
 Install the Linux dependencies in an Omarchy terminal:

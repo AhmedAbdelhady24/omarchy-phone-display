@@ -7,3 +7,6 @@ __pycache__/
 state.json
 .env
 .env.*
+
+# Reviewed documentation captures belong in the repository.
+!docs/media/*.png
