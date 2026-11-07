@@ -57,13 +57,55 @@ class Lifecycle(unittest.TestCase):
         self.assertIn("--max-fps", call)
         self.assertIn("--disable-resizing", call)
         self.assertEqual(call[-2:], ["127.0.0.1", "5900"])
-        self.assertIn(["adb", "-s", "phone1", "shell", "am", "start", "-W", "-a",
-                       "android.intent.action.VIEW", "-d", "vnc://127.0.0.1:5900", "com.gaurav.avnc"], self.calls())
+        self.assertTrue(self.get("authenticated-intent"))
+        self.assertIn(["adb", "-s", "phone1", "shell", "sh"], self.calls())
         self.assertEqual(self.run_script("stop").returncode, 0)
         self.assertFalse(self.get("reverse"))
         self.assertEqual(self.get("monitor"), [])
         self.assertIn(["adb", "-s", "phone1", "shell", "am", "force-stop", "com.gaurav.avnc"], self.calls())
         self.assertEqual(self.run_script("stop").returncode, 0)
+
+    def test_credentials_are_private_rotated_and_removed(self):
+        import stat
+        self.assertEqual(self.run_script("start").returncode, 0)
+        runtime = self.root / "omarchy-phone-display-test"
+        config = dict(line.split("=", 1) for line in (runtime / "wayvnc.conf").read_text().splitlines())
+        self.assertEqual(config["enable_auth"], "true")
+        self.assertEqual(config["relax_encryption"], "false")
+        self.assertEqual(config["allow_broken_crypto"], "false")
+        password = config["password"]
+        self.assertRegex(password, r"^[0-9a-f]{64}$")
+        for name in ["wayvnc.conf", "tls-key.pem", "tls-cert.pem"]:
+            self.assertEqual(stat.S_IMODE((runtime / name).stat().st_mode), 0o600)
+        self.assertEqual(stat.S_IMODE(runtime.stat().st_mode), 0o700)
+        self.assertNotIn(password, (runtime / "state.json").read_text())
+        self.assertNotIn(password, (self.root / "calls").read_text())
+        self.assertNotIn(password, (runtime / "wayvnc.log").read_text())
+        certificate = (runtime / "tls-cert.pem").read_bytes()
+        self.assertEqual(self.run_script("stop").returncode, 0)
+        self.assertFalse((runtime / "wayvnc.conf").exists())
+        self.assertEqual(self.run_script("start").returncode, 0)
+        self.assertNotIn("password=" + password, (runtime / "wayvnc.conf").read_text())
+        self.assertEqual(certificate, (runtime / "tls-cert.pem").read_bytes())
+
+    def test_upgrade_replaces_unauthenticated_session(self):
+        self.assertEqual(self.run_script("start").returncode, 0)
+        previous_pid = self.get("server-pid")
+        (self.root / "omarchy-phone-display-test/wayvnc.conf").write_text("enable_auth=false\n")
+        self.assertEqual(self.run_script("start").returncode, 0)
+        self.assertNotEqual(previous_pid, self.get("server-pid"))
+
+    def test_tls_failure_rolls_back_without_starting_server(self):
+        openssl = self.root / "bin/openssl"
+        openssl.write_text("#!/bin/sh\nexit 1\n")
+        openssl.chmod(0o755)
+        result = self.run_script("start")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Could not generate", result.stderr)
+        self.assertFalse(self.get("reverse"))
+        self.assertEqual(self.get("monitor"), [])
+        self.assertFalse(any(c[0] == "wayvnc" for c in self.calls()))
+        self.assertFalse((self.root / "omarchy-phone-display-test/wayvnc.conf").exists())
 
     def test_lua_and_rotated_left_placement(self):
         self.put("lua", True)
@@ -107,6 +149,7 @@ class Lifecycle(unittest.TestCase):
             self.assertEqual(self.get("monitor"), [], result.stderr)
             self.assertFalse(self.get("reverse"), result.stderr)
             self.assertFalse((self.root / "omarchy-phone-display-test/state.json").exists())
+            self.assertFalse((self.root / "omarchy-phone-display-test/wayvnc.conf").exists())
             self.put(failure, False)
 
     def test_argument_validation_precedes_side_effects(self):

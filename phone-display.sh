@@ -16,11 +16,12 @@ chmod 700 "$RUNTIME"
 STATE=$RUNTIME/state.json
 PIDFILE=$RUNTIME/wayvnc.pid
 LOG=$RUNTIME/wayvnc.log
+AUTH=$RUNTIME/wayvnc.conf
 serial= pid= born= token= resolution= reverse=false monitor=false app=false
 width=1080 height=2400 position=right-of scale=1.5 hz=60 orientation=fixed
 
 die() { printf 'phone-display: %s\n' "$*" >&2; exit 1; }
-need() { command -v "$1" >/dev/null || die "Missing $1. Install: omarchy pkg add wayvnc android-tools jq iproute2 util-linux"; }
+need() { command -v "$1" >/dev/null || die "Missing $1. Install: omarchy pkg add wayvnc android-tools jq iproute2 util-linux openssl"; }
 for dep in jq timeout flock; do need "$dep"; done
 
 load_state() {
@@ -142,7 +143,7 @@ stop_session() {
     printf 'phone-display: Cleanup incomplete; run stop again.\n' >&2
     return 1
   fi
-  rm -f -- "$STATE" "$PIDFILE" "$RUNTIME/control"
+  rm -f -- "$STATE" "$PIDFILE" "$RUNTIME/control" "$AUTH"
 }
 
 show_status() {
@@ -256,7 +257,7 @@ configure_session() {
 
 inspect_setup() {
   local missing=() dep devices='' usb=false installed=false native='' rotation='' views='[]' phone_orientation_value=''
-  for dep in wayvnc adb hyprctl ss nohup; do command -v "$dep" >/dev/null || missing+=("$dep"); done
+  for dep in wayvnc adb hyprctl ss nohup openssl; do command -v "$dep" >/dev/null || missing+=("$dep"); done
   if command -v adb >/dev/null; then
     if choose_phone_quiet=$(timeout 6 adb devices -l 2>/dev/null); then
       devices=$choose_phone_quiet
@@ -283,10 +284,11 @@ inspect_setup() {
 start_session() {
   local keep_awake=${7:-false}
   read_options "$@"
-  for dep in wayvnc adb hyprctl ss nohup; do need "$dep"; done
+  for dep in wayvnc adb hyprctl ss nohup openssl; do need "$dep"; done
   [[ -n ${WAYLAND_DISPLAY:-} && -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] || die 'Run inside the Hyprland session.'
   if [[ -f $STATE ]]; then
-    if connected && own_process && monitor_exists && own_listener; then return 0; fi
+    # Restart pre-authentication releases rather than retaining an insecure server.
+    if connected && own_process && monitor_exists && own_listener && grep -qx 'enable_auth=true' "$AUTH"; then return 0; fi
     stop_session || die 'Could not clean up the previous session.'
   fi
   choose_phone
@@ -312,9 +314,21 @@ start_session() {
   monitor=true; save_state
   apply_monitor
   save_state
-  # A dedicated config prevents an existing wayvnc config changing auth/binds.
-  printf 'address=127.0.0.1\nport=5900\nenable_auth=false\n' > "$RUNTIME/wayvnc.conf"
-  nohup wayvnc --config "$RUNTIME/wayvnc.conf" --output "$OUTPUT" --max-fps "$hz" \
+  # Keep the certificate stable for this desktop login so AVNC can remember trust.
+  if [[ ! -s $RUNTIME/tls-key.pem || ! -s $RUNTIME/tls-cert.pem ]]; then
+    openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -sha384 \
+      -days 365 -nodes -keyout "$RUNTIME/tls-key.pem" -out "$RUNTIME/tls-cert.pem" \
+      -subj /CN=localhost -addext subjectAltName=IP:127.0.0.1,DNS:localhost \
+      >/dev/null 2>&1 || die 'Could not generate the private TLS certificate.'
+  fi
+  local password uri
+  password=$(openssl rand -hex 32)
+  [[ $password =~ ^[0-9a-f]{64}$ ]] || die 'Could not generate a session password.'
+  # Never use legacy DES auth: it truncates passwords to eight characters.
+  printf 'address=127.0.0.1\nport=5900\nenable_auth=true\nrelax_encryption=false\nallow_broken_crypto=false\nusername=phone-display\npassword=%s\nprivate_key_file=%s\ncertificate_file=%s\n' \
+    "$password" "$RUNTIME/tls-key.pem" "$RUNTIME/tls-cert.pem" > "$AUTH"
+  chmod 600 "$AUTH" "$RUNTIME/tls-key.pem" "$RUNTIME/tls-cert.pem"
+  nohup wayvnc --config "$AUTH" --output "$OUTPUT" --max-fps "$hz" \
     --disable-resizing --socket "$RUNTIME/control" 127.0.0.1 5900 \
     </dev/null >"$LOG" 2>&1 9>&- &
   pid=$!
@@ -331,10 +345,14 @@ start_session() {
   adb_phone shell input keyevent KEYCODE_WAKEUP >/dev/null
   if [[ $keep_awake == true ]]; then adb_phone shell svc power stayon true >/dev/null; fi
   app=true; save_state
-  local intent
-  intent=$(adb_phone shell am start -W -a android.intent.action.VIEW -d 'vnc://127.0.0.1:5900' "$APP" 2>&1)
-  printf '%s\n' "$intent" >> "$LOG"
-  [[ $intent != *Error:* && $intent != *Exception* ]] || die 'Android could not launch AVNC. See wayvnc.log.'
+  uri="vnc://127.0.0.1:5900?VncUsername=phone-display&VncPassword=$password&SecurityType=19&ChannelType=1&SaveConnection=false"
+  # ADB stdin keeps credentials out of Linux argv; am echoes the URI, so redact
+  # its response on Android before it can enter logs or the widget's error text.
+  if ! printf 'result=$(am start -W -a android.intent.action.VIEW -d "%s" %s 2>&1)\nrc=$?\ncase "$result" in *Error:*|*Exception*) exit 1;; esac\nexit "$rc"\n' \
+    "$uri" "$APP" | adb_phone shell sh >/dev/null 2>&1; then
+    die 'Android could not launch AVNC.'
+  fi
+  unset password uri
   own_process || die 'wayvnc failed while launching AVNC. See wayvnc.log.'
   nohup "$SCRIPT" _watch "$token" </dev/null >"$RUNTIME/watch.log" 2>&1 9>&- &
   trap - EXIT INT TERM

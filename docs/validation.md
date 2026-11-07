@@ -24,7 +24,7 @@ errors that the manifest validator cannot detect. The installed popup was checke
 1.0 widget to the new shared QML module required that one-time restart.
 
 Live checks must include AVNC client connection, correct monitor geometry,
-loopback-only listener, USB reverse mapping, and stop cleanup. Manually
+authenticated loopback-only listener, USB reverse mapping, and stop cleanup. Manually
 dragging the real popup remains a separate interaction check; simulated
 input tests cannot certify all pointer devices. On the connected phone, the
 active session was observed switching from 1080×2340 portrait to 2340×1080
@@ -47,3 +47,22 @@ temporary, isolated headless preview. Setup state comes from the connected
 phone, and the layout excludes the capture output. The GIF illustrates compact
 checks, expanded USB guidance, controls, and isolated mint/blue accent changes.
 The capture helper and its temporary IPC hook are not part of the plugin.
+
+The 1.2.1 security fix enables authentication and encryption with a fresh
+256-bit random password per start, disables relaxed encryption and legacy DES,
+and forces AVNC to use VeNCrypt over direct TCP. Credentials travel through
+ADB stdin; neither Linux argv nor plugin logs receive the credential URI.
+The lifecycle suite includes private file permissions, credential rotation and
+deletion, failed TLS setup rollback, and replacement of an older unauthenticated
+session. A separate live probe (`tests/probe_vnc_auth.py`) verified the real
+WayVNC 0.10.2 / neatvnc 1.0.3 endpoint: no None/DES/Apple-DH methods offered,
+None selected forcibly rejected, empty/wrong credentials rejected, and valid
+credentials accepted through certificate-verified X509Plain TLS. It requests
+no framebuffer and sends no input.
+
+On the connected AVNC 3.3.1 phone, its displayed certificate fingerprint matched
+the generated server certificate. The client then rendered the desktop and
+WayVNC's client-list reported the authenticated `phone-display` username.
+Raw captures used to check that connection remain outside the repository.
+The README documents initial certificate trust and the trusted owner/root/ADB
+server boundary. This is regression evidence, not a comprehensive security audit.

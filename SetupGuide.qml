@@ -113,7 +113,7 @@ Column {
                         selectByMouse: true
                         textFormat: TextEdit.PlainText
                         wrapMode: TextEdit.WrapAnywhere
-                        text: "omarchy pkg add wayvnc android-tools jq iproute2 util-linux"
+                        text: "omarchy pkg add wayvnc android-tools jq iproute2 util-linux openssl"
                         color: PhonePalette.accent
                         font.family: "monospace"
                         font.pixelSize: Commons.Style.font.bodySmall

@@ -43,7 +43,7 @@ the installed desktop theme is unchanged. Surrounding desktop content is exclude
 Install the Linux dependencies in an Omarchy terminal:
 
 ```bash
-omarchy pkg add wayvnc android-tools jq iproute2 util-linux
+omarchy pkg add wayvnc android-tools jq iproute2 util-linux openssl
 ```
 
 Install the plugin with Omarchy's native installer:
@@ -86,6 +86,17 @@ update user.phone-display` for repositories installed through Omarchy.
    Drag the phone rectangle to the desired monitor edge. Press **Start**.
 6. Accept any Hyprland capture/input permission prompts. Move a window to the
    new monitor using your normal Hyprland workspace controls.
+
+On the first AVNC connection after desktop login, verify and accept the server's
+self-signed certificate. AVNC 3.3.1 displays a SHA-1 fingerprint; compare it with:
+
+```bash
+openssl x509 -in "$XDG_RUNTIME_DIR/omarchy-phone-display-$HYPRLAND_INSTANCE_SIGNATURE/tls-cert.pem" -noout -fingerprint -sha1
+```
+
+The certificate stays the same across stops/starts during that desktop login.
+The runtime directory disappears at logout; a later login requires accepting
+the new certificate. Never disable certificate checking globally.
 
 Wakeup cannot bypass Android's secure lock screen. Wireless ADB and emulators
 are excluded. If multiple USB phones are attached, export `ANDROID_SERIAL` in
@@ -136,7 +147,8 @@ argument is `true`.
 |---|---|
 | Saved server **name** | **`vnc://127.0.0.1`**, exactly, without the port |
 | Address / port | `127.0.0.1` / `5900` |
-| Connection / security | Direct TCP; Automatic or None for this local server |
+| Connection / security | Direct TCP; Automatic (the plugin enforces VeNCrypt) |
+| Username / password | Supplied automatically; a fresh random password per session |
 | Advanced → Image quality → Raw | Off |
 | Advanced → Image quality | 5 (range 0–9) |
 | Gesture style | Touchscreen for absolute pointer placement |
@@ -144,8 +156,10 @@ argument is `true`.
 | Resize remote desktop | Off; the plugin owns monitor geometry |
 | Viewer | Fullscreen, Fit to screen, Normal view mode |
 
-The plain launch URI selects a saved profile by its **name**, not by matching its
+The launch URI selects a saved profile by its **name**, not by matching its
 address and port. Keep the exact name above so intent launches reuse your settings.
+Its query overrides credentials, security, and transport in memory without saving
+the session password to the profile (`SaveConnection=false`).
 See AVNC's [intent handler](https://github.com/gujjwal00/avnc/blob/master/app/src/main/java/com/gaurav/avnc/ui/vnc/IntentReceiverActivity.kt)
 and [URI parser](https://github.com/gujjwal00/avnc/blob/master/app/src/main/java/com/gaurav/avnc/vnc/VncUri.kt).
 
@@ -186,6 +200,11 @@ The backend creates `PHONE-DISPLAY`, configures a monitor mode, starts only its
 own WayVNC on `127.0.0.1:5900`, adds an ADB reverse mapping without rebinding an
 existing one, wakes Android, and launches AVNC via the VNC VIEW intent. It supports
 legacy `hyprctl keyword monitor` and current Lua `hyprctl eval` configuration.
+WayVNC requires authentication and encryption; unauthenticated access, legacy DES,
+and relaxed encryption are disabled. Each start generates a 256-bit random
+password. AVNC receives credentials via ADB standard input, rather than Linux
+process arguments. Android's `am` response is discarded on the phone because it
+echoes the credential-bearing URI. The plugin never logs that URI.
 
 Stop force-stops AVNC, terminates the owned server, removes its reverse mapping,
 and then removes the output. PID/start-time checks prevent killing unrelated
@@ -203,12 +222,20 @@ plain-text diagnostic sinks, English fallback catalogs, and lazy scrollable pane
 Logs and private session state live in
 `$XDG_RUNTIME_DIR/omarchy-phone-display-$HYPRLAND_INSTANCE_SIGNATURE/`.
 Read `wayvnc.log` and `watch.log` if the popup reports a failure.
+The directory is mode 0700; the credential config and TLS files are mode 0600.
+Stop and failed-start rollback delete the credential config. TLS files remain
+until logout to preserve certificate trust. Upgrading from an older release
+requires restarting an active display; `start` replaces a session with an
+unauthenticated config instead of keeping it running.
 
 **Output-removal caveat:** upstream WayVNC may switch to another output if its
 selected output disappears. Always stop through the widget/script; externally
 removing the monitor can briefly share another display before cleanup notices.
-The unauthenticated loopback listener is reachable by local desktop processes
-and phone apps through the reverse mapping. Use a trusted phone/session. This
+The loopback listener is reachable by other local accounts, but requires the
+random credentials before exposing pixels or input. Use a trusted phone, Linux
+account, and ADB server: access to the owner's ADB server grants Android shell
+access and is outside this VNC authentication boundary. Root or processes running
+as the desktop owner can read the owner's files and are also outside it. This
 connection carries pixels and pointer/keyboard events, not audio or multitouch.
 
 ## Development and validation
@@ -219,6 +246,8 @@ omarchy plugin validate .
 python3 -m unittest discover -s tests -v
 node tests/test_layout.cjs
 node tests/test_colors.cjs
+# Optional live security probe while the display is active:
+python3 tests/probe_vnc_auth.py "$XDG_RUNTIME_DIR/omarchy-phone-display-$HYPRLAND_INSTANCE_SIGNATURE/wayvnc.conf"
 ```
 
 Python tests fake ADB, Hyprland, and the server using temporary Unix sockets;

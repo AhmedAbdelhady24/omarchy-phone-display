@@ -8,6 +8,7 @@ import signal
 import socket
 import sys
 import time
+from urllib.parse import parse_qs, urlsplit
 
 root = Path(os.environ["PHONE_TEST_ROOT"])
 name, args = Path(sys.argv[0]).name, sys.argv[1:]
@@ -61,11 +62,20 @@ if name == "adb":
             write("reverse", True)
         elif args[:2] == ["reverse", "--remove"]:
             write("reverse", False)
-        elif args[:3] == ["shell", "am", "start"]:
+        elif args == ["shell", "sh"]:
+            script = sys.stdin.read()
+            uri = re.search(r'-d "([^"]+)"', script).group(1)
+            query = parse_qs(urlsplit(uri).query)
+            config = (root / "omarchy-phone-display-test/wayvnc.conf").read_text()
+            password = next(line.removeprefix("password=") for line in config.splitlines() if line.startswith("password="))
+            assert query["VncPassword"] == [password]
+            assert query["VncUsername"] == ["phone-display"]
+            assert query["SecurityType"] == ["19"]
+            assert query["ChannelType"] == ["1"]
+            assert query["SaveConnection"] == ["false"]
+            write("authenticated-intent", True)
             if read("fail-intent", False):
-                print("Error: Activity not started", file=sys.stderr)
                 sys.exit(1)
-            print("Status: ok")
 elif name == "hyprctl":
     if args == ["-j", "monitors", "all"]:
         physical = read("physical", [{"name": "DP-1", "width": 2560, "height": 1440,

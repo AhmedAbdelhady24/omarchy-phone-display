@@ -33,7 +33,7 @@
   "setupUsb": "3. Connect and authorize USB debugging",
   "setupUsbBody": "On Android: Settings → About phone → tap Build number seven times. Open Developer options and enable USB debugging. Connect a data-capable cable, unlock the phone, and accept the RSA authorization prompt. Connect one phone at a time.",
   "setupProfile": "4. Configure AVNC for the display",
-  "setupProfileBody": "Save a server named exactly vnc://127.0.0.1 with address 127.0.0.1 and port 5900. Use direct TCP, Raw off, image quality 5, and Touchscreen gestures. Disable Resize remote desktop. Use fullscreen and Fit to screen if you previously changed zoom.",
+  "setupProfileBody": "Save a server named exactly vnc://127.0.0.1 with address 127.0.0.1 and port 5900. Use direct TCP, Automatic security, Raw off, image quality 5, and Touchscreen gestures. The plugin supplies a new password automatically each session. On first connection after desktop login, verify and accept the self-signed certificate in AVNC. Disable Resize remote desktop. Use fullscreen and Fit to screen if you previously changed zoom.",
   "setupRotate": "5. Enable phone rotation",
   "setupRotateBody": "Turn on Android Auto-rotate. In AVNC, set the viewer and saved server orientation to Automatic. Choose Follow phone in Display. The desktop changes shape after Android rotates its screen; manual Portrait and Landscape are also available.",
   "setupStart": "6. Place the display and start",
