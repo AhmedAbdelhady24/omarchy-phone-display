@@ -40,11 +40,10 @@ Install the Linux dependencies in an Omarchy terminal:
 omarchy pkg add wayvnc android-tools jq iproute2 util-linux
 ```
 
-Once this repository is published, use Omarchy's native installer. Replace the
-example URL with the actual repository URL:
+Install the plugin with Omarchy's native installer:
 
 ```bash
-omarchy plugin add https://github.com/YOUR_ACCOUNT/omarchy-phone-display --enable
+omarchy plugin add https://github.com/AhmedAbdelhady24/omarchy-phone-display --enable
 ```
 
 Omarchy validates the root `manifest.json` and installs to
@@ -55,7 +54,7 @@ therefore an explicit first step, also shown inside Setup.
 For a local checkout before publication:
 
 ```bash
-git clone <repository-url> omarchy-phone-display
+git clone https://github.com/AhmedAbdelhady24/omarchy-phone-display.git
 cd omarchy-phone-display
 bash install.sh
 ```

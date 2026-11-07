@@ -10,3 +10,4 @@ state.json
 
 # Reviewed documentation captures belong in the repository.
 !docs/media/*.png
+!preview.png
