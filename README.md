@@ -1,4 +1,4 @@
-![Android phone as a second Linux monitor — USB Phone Display for Omarchy and Hyprland](docs/media/banner.png)
+![Android phone as a second Linux monitor — USB Phone Display for Omarchy and Hyprland](docs/media/repository-banner.png)
 
 # Omarchy USB Phone Display
 
