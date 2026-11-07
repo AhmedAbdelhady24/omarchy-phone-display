@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+*.tar.gz
+*.png
+*.jpg
+*.log
+state.json
+.env
+.env.*

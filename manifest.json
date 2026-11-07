@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "user.phone-display",
+  "name": "USB Phone Display",
+  "version": "1.1.0",
+  "description": "Extend Hyprland to an Android phone using AVNC over USB",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "USB Phone Display",
+    "description": "Left click toggles the display; right click opens settings",
+    "category": "System",
+    "defaultSection": "right",
+    "allowMultiple": false
+  }
+}

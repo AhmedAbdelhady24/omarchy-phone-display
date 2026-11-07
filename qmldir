@@ -1,0 +1,5 @@
+singleton PhoneState 1.0 Backend.qml
+BarWidget 1.0 BarWidget.qml
+Panel 1.0 Panel.qml
+DisplayLayout 1.0 DisplayLayout.qml
+SetupGuide 1.0 SetupGuide.qml
